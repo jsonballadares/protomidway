@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:background="@color/colorPrimaryDark"
+    android:layout_height="match_parent">
+
+    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:map="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        tools:context=".MapsActivity"
+        android:layout_alignParentLeft="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginLeft="10dp"
+        android:background="#fff"
+        android:id="@+id/relLayout1"
+        >
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:id="@+id/ic_magnify"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="10dp"
+            android:src="@drawable/ic_magnify"
+            />
+
+        <AutoCompleteTextView
+            android:id="@+id/input_search0"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_toRightOf="@+id/ic_magnify"
+            android:textSize="15sp"
+            android:textColor="#000"
+            android:inputType="text"
+            android:background="@drawable/white_border"
+            android:hint="Enter Address, City or Zip Code"
+            android:imeOptions="actionSearch"/>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="70dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginLeft="10dp"
+        android:background="#fff"
+        android:id="@+id/relLayout2"
+        >
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:id="@+id/ic_magnify2"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="10dp"
+            android:src="@drawable/ic_magnify"
+            />
+
+        <AutoCompleteTextView
+            android:id="@+id/input_search1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_toRightOf="@+id/ic_magnify2"
+            android:textSize="15sp"
+            android:textColor="#000"
+            android:inputType="text"
+            android:background="@drawable/white_border"
+            android:hint="Enter Address, City or Zip Code"
+            android:imeOptions="actionSearch"/>
+
+    </RelativeLayout>
+
+
+
+    <ImageView
+        android:id="@+id/ic_gps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginEnd="19dp"
+        android:layout_marginTop="20dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_gps"
+        tools:ignore="NotSibling"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="19dp" />
+
+    <ImageView
+        android:id="@+id/ic_check"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/ic_gps"
+        android:layout_marginTop="81dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_check"
+        tools:ignore="NotSibling" />
+
+</RelativeLayout>
+
+
+
