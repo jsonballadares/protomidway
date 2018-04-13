@@ -2,6 +2,7 @@ package com.example.jason.midwayproto;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -18,6 +19,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
@@ -45,6 +47,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -55,28 +58,30 @@ import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
 
+    //fields
     private static final String TAG = "MainActivity";
     private static final float DEFAULT_ZOOM = 15f;
+
     private static final String FINE_LOCATION = android.Manifest.permission.ACCESS_FINE_LOCATION;
     private static final String COURSE_LOCATION = android.Manifest.permission.ACCESS_COARSE_LOCATION;
-    private static final LatLngBounds LAT_LNG_BOUNDS = new LatLngBounds(
-            new LatLng(-40, -168), new LatLng(71, 136));
-
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
     private static final int ERROR_DIALOG_REQUEST = 9001;
+
+    private static final LatLngBounds LAT_LNG_BOUNDS = new LatLngBounds(new LatLng(-40, -168), new LatLng(71, 136));
+
     private Boolean mLocationPermissionsGranted = false;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private GoogleMap mMap;
-    private ImageView mGps;
-    private ImageView mCheck;
+    private ImageView mGps,mCheck,mReset;
     private AutoCompleteTextView mSearchText0,mSearchText1;
     private GoogleApiClient mGoogleApiClient;
     private PlaceAutocompleteAdapter mPlaceAutocompleteAdapter;
     private PlaceInfo mPlace;
-    private LatLng point0,point1;
+    private LatLng point0,point1,currentDeviceLocation;
     private static final int PLACE_PICKER_REQUEST = 1;
-    int PROXIMITY_RADIUS = 10000;
-    double latitude,longitude;
+    private int PROXIMITY_RADIUS = 10000;
+
+
 
 
 
@@ -84,7 +89,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void init(){
         Log.d(TAG, "init: initializing");
-
 
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
@@ -100,24 +104,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mSearchText0.setAdapter(mPlaceAutocompleteAdapter);
         mSearchText1.setAdapter(mPlaceAutocompleteAdapter);
 
+        if(point0 != currentDeviceLocation){
 
-        mSearchText0.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
-                if(actionId == EditorInfo.IME_ACTION_SEARCH
-                        || actionId == EditorInfo.IME_ACTION_DONE
-                        || keyEvent.getAction() == KeyEvent.ACTION_DOWN
-                        || keyEvent.getAction() == KeyEvent.KEYCODE_ENTER){
+            mSearchText0.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
+                    if(actionId == EditorInfo.IME_ACTION_SEARCH
+                            || actionId == EditorInfo.IME_ACTION_DONE
+                            || keyEvent.getAction() == KeyEvent.ACTION_DOWN
+                            || keyEvent.getAction() == KeyEvent.KEYCODE_ENTER){
 
-                    //execute our method for searching
+                        //execute our method for searching
 
-                    geoLocate0();
+                        geoLocate0();
+                        hideSoftKeyboard();
+                    }
 
+                    return false;
                 }
+            });
+        }
 
-                return false;
-            }
-        });
+
+
 
         mSearchText1.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -130,6 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //execute our method for searching
 
                     geoLocate1();
+                    hideSoftKeyboard();
 
                 }
 
@@ -143,58 +153,90 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onClick(View view) {
                 Log.d(TAG, "onClick: clicked gps icon");
                 getDeviceLocation();
+
+                point0 = currentDeviceLocation;
+                mMap.addMarker(new MarkerOptions().position(point0));
+                mMap.moveCamera(CameraUpdateFactory.newLatLng(point0));
+                mSearchText0.setText("Current Device Location");
+                hideSoftKeyboard();
+
             }
         });
+
 
         mCheck.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d(TAG, "onClick: clicked check icon");
-                double midPointLat = (point0.latitude + point1.latitude) / 2.0;
-                double midPointLon = (point0.longitude + point1.longitude) / 2.0;
+                Log.d(TAG, "onClick: clicked send icon");
+
+
+                if(point0 != null && point1 != null){
+
+                    getMidPoint();
+
+                    mMap.clear();
+
+                    mMap.addMarker(new MarkerOptions().position(getMidPoint())).setTitle("Mid Point");
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(getMidPoint()));
+
+                    Object dataTransfer[] = new Object[2];
+
+                    String url = getUrl(getMidPoint().latitude, getMidPoint().longitude, "restaurant");
+                    dataTransfer[0] = mMap;
+                    dataTransfer[1] = url;
+
+                    GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData();
+                    getNearbyPlacesData.execute(dataTransfer);
+                    mSearchText0.setText("");
+                    mSearchText1.setText("");
+                    point0 = null;
+                    point1 = null;
+
+
+                }else{
+                    Toast.makeText(MapsActivity.this,"pl0x enter both points brotha", Toast.LENGTH_LONG).show();
+                }
+
+
+            }
+        });
+
+        mReset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "onClick: clicked reset icon");
                 mMap.clear();
-
-                LatLng midPoint = new LatLng(midPointLat,midPointLon);
-                mMap.addMarker(new MarkerOptions().position(midPoint));
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(midPoint));
-
-                Object dataTransfer[] = new Object[2];
-
-                String url = getUrl(midPoint.latitude, midPoint.longitude, "restaurant");
-                dataTransfer[0] = mMap;
-                dataTransfer[1] = url;
-
-                GetNearbyPlacesData getNearbyPlacesData = new GetNearbyPlacesData();
-                getNearbyPlacesData.execute(dataTransfer);
                 mSearchText0.setText("");
                 mSearchText1.setText("");
+                point0 = null;
+                point1 = null;
                 hideSoftKeyboard();
-
-
-//                new LatLngBounds(
-//                        new LatLng(-40, -168), new LatLng(71, 136));
-//
-//
-//                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
-//                LatLngBounds bounds = new LatLngBounds(
-//                        new LatLng(midPointLat, midPointLon), new LatLng(midPointLat + .005, midPointLon + .005));
- //               builder.setLatLngBounds(bounds);
-  //              try {
-    //                startActivityForResult(builder.build(MapsActivity.this), PLACE_PICKER_REQUEST);
-      //          } catch (GooglePlayServicesRepairableException e) {
-        //            e.printStackTrace();
-          //      } catch (GooglePlayServicesNotAvailableException e) {
-            //        e.printStackTrace();
-              //  }
-
+                getDeviceLocation();
             }
         });
 
 
 
+        hideSoftKeyboard();
+
+    }
 
 
+    /*
+    calculates a linear midpoint between two different lat/lng
+     */
+    private LatLng getMidPoint(){
+        Log.d(TAG, "getMidPoint: Getting Midpoint");
 
+        new LatLng(0, 0);
+        LatLng midPoint;
+
+        double midPointLat = (point0.latitude + point1.latitude) / 2.0;
+        double midPointLon = (point0.longitude + point1.longitude) / 2.0;
+        midPoint = new LatLng(midPointLat,midPointLon);
+
+
+        return midPoint;
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -220,6 +262,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mSearchText1 = findViewById(R.id.input_search1);
         mGps = findViewById(R.id.ic_gps);
         mCheck = findViewById(R.id.ic_check);
+        mReset = findViewById(R.id.ic_reset);
 
 
         if(isServicesOK()){
@@ -249,6 +292,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
+            mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this,R.raw.style_json));
             mMap.setMyLocationEnabled(true);
             mMap.getUiSettings().setMyLocationButtonEnabled(false);
             init();
@@ -265,13 +309,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try{
             list = geocoder.getFromLocationName(searchString, 1);
         }catch (IOException e){
-            Log.e(TAG, "geoLocate: IOException: " + e.getMessage() );
+            Log.e(TAG, "geoLocate0: IOException: " + e.getMessage() );
         }
 
         if(list.size() > 0){
             Address address = list.get(0);
 
-            Log.d(TAG, "geoLocate: found a location: " + address.toString());
+            Log.d(TAG, "geoLocate0: found a location: " + address.toString());
             point0 = new LatLng(address.getLatitude(), address.getLongitude());
 
 
@@ -291,13 +335,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try{
             list = geocoder.getFromLocationName(searchString, 1);
         }catch (IOException e){
-            Log.e(TAG, "geoLocate: IOException: " + e.getMessage() );
+            Log.e(TAG, "geoLocate1: IOException: " + e.getMessage() );
         }
 
         if(list.size() > 0){
             Address address = list.get(0);
 
-            Log.d(TAG, "geoLocate: found a location: " + address.toString());
+            Log.d(TAG, "geoLocate1: found a location: " + address.toString());
             point1 = new LatLng(address.getLatitude(), address.getLongitude());
 
 
@@ -326,9 +370,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             Log.d(TAG, "onComplete: found location!");
                             Location currentLocation = (Location) task.getResult();
 
-                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()),
-                                    DEFAULT_ZOOM,
-                                    "My Location");
+                            moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), DEFAULT_ZOOM, "My Location");
+                            currentDeviceLocation = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
 
                         }else{
                             Log.d(TAG, "onComplete: current location is null");
@@ -436,7 +479,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     private void hideSoftKeyboard(){
         Log.d(TAG, "hideSoftKeyboard: Hiding soft keyboard");
-        this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 
         /*
@@ -446,7 +493,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private AdapterView.OnItemClickListener mAutocompleteClickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-            hideSoftKeyboard();
+            //hideSoftKeyboard();
 
             final AutocompletePrediction item = mPlaceAutocompleteAdapter.getItem(i);
             final String placeId = item.getPlaceId();
@@ -473,8 +520,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d(TAG, "onResult: name: " + place.getName());
                 mPlace.setAddress(place.getAddress().toString());
                 Log.d(TAG, "onResult: address: " + place.getAddress());
-//                mPlace.setAttributions(place.getAttributions().toString());
-//                Log.d(TAG, "onResult: attributions: " + place.getAttributions());
                 mPlace.setId(place.getId());
                 Log.d(TAG, "onResult: id:" + place.getId());
                 mPlace.setLatlng(place.getLatLng());
@@ -517,6 +562,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         return googlePlaceUrl.toString();
     }
+
+
 
 
 }

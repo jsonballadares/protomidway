@@ -108,7 +108,17 @@
         android:layout_alignStart="@+id/ic_gps"
         android:layout_marginTop="81dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_check"
+        android:src="@drawable/ic_send"
+        tools:ignore="NotSibling" />
+    <ImageView
+        android:id="@+id/ic_reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/ic_gps"
+        android:layout_marginTop="131dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_reset"
         tools:ignore="NotSibling" />
 
 </RelativeLayout>
